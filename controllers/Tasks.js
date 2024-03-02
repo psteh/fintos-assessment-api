@@ -9,6 +9,7 @@ const COLLECTION_NAME = 'tasks';
  * TODO:
  * - collection name should be put in middleware
  * - convert to typescript
+ * - add validation schema
  */
 
 async function getAllTasks(request, reply) {
