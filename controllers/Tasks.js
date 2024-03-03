@@ -3,16 +3,39 @@
 const { ObjectId } = require('@fastify/mongodb');
 const moment = require('moment');
 
+const { STATUS_MAP, DUE_SOON_DAYS } = require('./constants');
+
 const COLLECTION_NAME = 'tasks';
 
 /**
  * TODO:
  * - collection name should be put in middleware
  * - convert to typescript
- * - add validation schema
  * - improve API route to /api/*
- * - add checking if due date is within 7 date (DUE_SOON status if Due date is within 7 days)
  */
+
+function sortBy(sort) {
+  let sortBy = { createdAt: 1 };
+
+  switch (sort) {
+    case 'createdAt':
+      sortBy = { createdAt: 1 };
+      break;
+    case '-createdAt':
+      sortBy = { createdAt: -1 };
+      break;
+    case 'dueDate':
+      sortBy = { dueDate: 1 };
+      break;
+    case '-dueDate':
+      sortBy = { dueDate: -1 };
+      break;
+    default:
+      break;
+  }
+
+  return sortBy;
+}
 
 async function getAllTasks(request, reply) {
   const collection = this.mongo.db.collection(COLLECTION_NAME);
@@ -20,11 +43,12 @@ async function getAllTasks(request, reply) {
     const page = parseInt(request.query.page) || 1;
     const pageSize = Number(request.query.pageSize) || 10;
     const search = request.query.search.length > 0 ? request.query.search : null;
+    const sort = sortBy(request.query.sort);
     const skip = (page - 1) * pageSize;
     const query = search ? { name: search, deletedAt: null } : { deletedAt: null };
 
     const totalDocuments = await collection.countDocuments();
-    const rows = await collection.find(query).skip(skip).limit(pageSize).toArray();
+    const rows = await collection.find(query).sort(sort).skip(skip).limit(pageSize).toArray();
     const totalPages = Math.ceil(totalDocuments / pageSize);
 
     return reply.code(200).send({ page, rows, totalPages });
@@ -54,11 +78,14 @@ async function getTaskById(request, reply) {
 async function createTask(request, reply) {
   const collection = this.mongo.db.collection(COLLECTION_NAME);
   try {
+    const daysDifference = moment(request.body.dueDate).diff(moment(), 'd');
+    const status = daysDifference > DUE_SOON_DAYS ? STATUS_MAP.NOT_URGENT : STATUS_MAP.DUE_SOON;
+
     const res = await collection.insertOne({
       name: request.body.name,
       description: request.body.description,
       dueDate: request.body.dueDate,
-      status: request.body.status,
+      status,
       createdAt: moment().toISOString(),
       updatedAt: moment().toISOString(),
       deletedAt: null,
@@ -82,6 +109,9 @@ async function updateTask(request, reply) {
       return reply.code(404).send({ message: 'Task not found' });
     }
 
+    const daysDifference = moment(request.body.dueDate).diff(moment(), 'd');
+    const status = daysDifference > DUE_SOON_DAYS ? STATUS_MAP.NOT_URGENT : STATUS_MAP.DUE_SOON;
+
     await collection.updateOne(
       { _id: id },
       {
@@ -89,7 +119,7 @@ async function updateTask(request, reply) {
           name: request.body.name,
           description: request.body.description,
           dueDate: request.body.dueDate,
-          status: request.body.status || task.status,
+          status: status || task.status,
           updatedAt: moment().toISOString(),
         },
       },

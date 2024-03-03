@@ -2,18 +2,78 @@
 
 const { getAllTasks, getTaskById, createTask, updateTask } = require('../../controllers/Tasks');
 
-// import { getAllTasks, getTaskById, createTask, updateTask } from '../../controllers/Tasks';
-
-/**
- * TODO:
- * - convert to typescript
- */
-
 const TaskRoutes = async function (fastify, opts) {
-  fastify.get('/', getAllTasks);
-  fastify.get('/:id', getTaskById);
-  fastify.post('/', createTask);
-  fastify.put('/:id', updateTask);
+  fastify.get(
+    '/',
+    {
+      schema: {
+        type: 'object',
+        properties: {
+          page: { type: 'string' },
+          pageSize: { type: 'string' },
+          sort: { type: 'string' },
+          search: { type: 'string' },
+        },
+      },
+    },
+    getAllTasks,
+  );
+  fastify.get(
+    '/:id',
+    {
+      schema: {
+        params: {
+          type: 'object',
+          required: ['id'],
+          properties: {
+            id: { type: 'string' },
+          },
+        },
+      },
+    },
+    getTaskById,
+  );
+  fastify.post(
+    '/',
+    {
+      schema: {
+        body: {
+          type: 'object',
+          required: ['name', 'description', 'dueDate'],
+          properties: {
+            name: { type: 'string' },
+            description: { type: 'string' },
+            dueDate: { type: 'string' },
+          },
+        },
+      },
+    },
+    createTask,
+  );
+  fastify.put(
+    '/:id',
+    {
+      schema: {
+        params: {
+          type: 'object',
+          required: ['id'],
+          properties: {
+            id: { type: 'string' },
+          },
+        },
+        body: {
+          type: 'object',
+          required: ['name', 'description', 'dueDate'],
+          properties: {
+            name: { type: 'string' },
+            description: { type: 'string' },
+            dueDate: { type: 'string' },
+          },
+        },
+      },
+    },
+    updateTask,
+  );
 };
 
 module.exports = TaskRoutes;
