@@ -45,13 +45,13 @@ async function getAllTasks(request, reply) {
     const search = request.query.search.length > 0 ? request.query.search : null;
     const sort = sortBy(request.query.sort);
     const skip = (page - 1) * pageSize;
-    const query = search ? { name: search, deletedAt: null } : { deletedAt: null };
+    const query = search ? { name: { $regex: new RegExp(search, 'i') }, deletedAt: null } : { deletedAt: null };
 
-    const totalDocuments = await collection.countDocuments();
+    const totalDocuments = await collection.countDocuments(query);
     const rows = await collection.find(query).sort(sort).skip(skip).limit(pageSize).toArray();
     const totalPages = Math.ceil(totalDocuments / pageSize);
 
-    return reply.code(200).send({ page, rows, totalPages });
+    return reply.code(200).send({ page, rows, totalPages, totalDocuments });
   } catch (err) {
     request.log.error(err.message);
     return reply.code(500).send({ message: err.message });
