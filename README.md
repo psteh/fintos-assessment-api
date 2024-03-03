@@ -10,3 +10,7 @@ https://api.postman.com/collections/25112428-4a876b50-ff8e-4631-9e9b-5e25f68cdc5
 - database collection should be moved to middleware
 - implement caching for better performance and less hitting on database
 - improve validation schema
+
+# How to run
+1. create new `.env` file using the `.env.example` content
+2. start the server by running `yarn dev`
